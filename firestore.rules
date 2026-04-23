@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Global Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(email) { return isSignedIn() && request.auth.token.email == email; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Default Deny ---
+    match /{document=**} { allow read, write: if false; }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId && 
+        incoming().balance == 0 && incoming().totalEarned == 0 && incoming().isAdmin == false;
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['wallet'])) ||
+        isAdmin()
+      );
+    }
+
+    // --- Plans ---
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- Investments ---
+    match /investments/{investmentId} {
+      allow read: if isSignedIn() && (isOwner(existing().userEmail) || isAdmin());
+      allow create: if isSignedIn() && isOwner(incoming().userEmail) && 
+        incoming().status == 'active' && incoming().totalEarned == 0;
+      allow update: if isAdmin();
+    }
+
+    // --- Deposits (Managed by server worker) ---
+    match /deposits/{txnHash} {
+      allow read: if isSignedIn() && (isOwner(existing().userEmail) || isAdmin());
+      allow write: if false; // Only via Admin SDK in server.ts
+    }
+
+    // --- Withdrawals ---
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn() && (isOwner(existing().userEmail) || isAdmin());
+      allow create: if isSignedIn() && isOwner(incoming().userEmail) && incoming().status == 'pending';
+      allow update: if isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+    }
+  }
+}

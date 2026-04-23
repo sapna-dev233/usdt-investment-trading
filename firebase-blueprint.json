@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user balance and wallet information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "wallet": { "type": "string" },
+        "balance": { "type": "number" },
+        "totalEarned": { "type": "number" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "balance"]
+    },
+    "Plan": {
+      "title": "Investment Plan",
+      "description": "Fixed investment plans offered by the platform",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "min": { "type": "number" },
+        "dailyProfit": { "type": "number" },
+        "duration": { "type": "number" }
+      },
+      "required": ["name", "min", "dailyProfit"]
+    },
+    "Investment": {
+      "title": "User Investment",
+      "description": "Active user investments generating ROI",
+      "type": "object",
+      "properties": {
+        "userEmail": { "type": "string" },
+        "planName": { "type": "string" },
+        "amount": { "type": "number" },
+        "dailyProfit": { "type": "number" },
+        "duration": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "lastPaid": { "type": "string", "format": "date-time" },
+        "totalEarned": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed"] }
+      },
+      "required": ["userEmail", "amount", "startDate"]
+    },
+    "Deposit": {
+      "title": "Deposit Transaction",
+      "description": "Verified USDT BEP20 deposits tracked from BscScan",
+      "type": "object",
+      "properties": {
+        "txnHash": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "amount": { "type": "number" },
+        "fromAddress": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["txnHash", "userEmail", "amount"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal Request",
+      "description": "User requests to withdraw funds",
+      "type": "object",
+      "properties": {
+        "userEmail": { "type": "string" },
+        "amount": { "type": "number" },
+        "walletAddress": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userEmail", "amount", "status"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": { "schema": "User", "description": "User profiles" },
+    "plans/{planId}": { "schema": "Plan", "description": "Investment plans" },
+    "investments/{investmentId}": { "schema": "Investment", "description": "User investments" },
+    "deposits/{txnHash}": { "schema": "Deposit", "description": "Verified deposits" },
+    "withdrawals/{withdrawalId}": { "schema": "Withdrawal", "description": "Withdrawal requests" }
+  }
+}
